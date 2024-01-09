@@ -1,18 +1,20 @@
 import requests
 import shutil
 import time
-import torch
-from diffusers import DiffusionPipeline
+import os
+from token_api import FACESHAPE_TOKEN, HUGGINGFACE_API_TOKEN
 
 def detect_face(image_name):
     API_URL = "https://api.faceshape.com/infer_img/faceshape_full"
-    TOKEN = ""
     HEADERS = {
-        "Authorization": "Bearer " + TOKEN
+        "Authorization": "Bearer " + FACESHAPE_TOKEN
+    }
+    FILES = {
+        "file": open('static/imgs/' + image_name, 'rb')
     }
 
-    response = requests.post(API_URL, headers=HEADERS, files={'file': open('static/imgs/' + image_name, 'rb')})
-    if not (200 == response.status_code):
+    response = requests.post(API_URL, headers=HEADERS, files=FILES)
+    if 200 != response.status_code:
         print(response.json())
 
         return False
@@ -37,15 +39,19 @@ def detect_face(image_name):
 
 def generate_baby_with_api(prompt):
     API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
-    API_TOKEN = ""
+    HEADERS = {
+        "Authorization": f"Bearer {HUGGINGFACE_API_TOKEN}"
+    }
+    PAYLOAD = { 
+        "inputs": prompt 
+    }
 
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    payload = { "inputs": prompt }
-    response = requests.post(API_URL, headers=headers, json=payload, stream=True)
+    response = requests.post(API_URL, headers=HEADERS, json=PAYLOAD, stream=True)
 
     if 200 == response.status_code:
         filename = 'img_' + time.strftime("%Y%m%d%H%M%S") + '.png'
         file_path = 'static/imgs/' + filename
+        os.pardirs(file_path)
         with open(file_path, 'wb') as out_file:
             shutil.copyfileobj(response.raw, out_file)
         
@@ -54,20 +60,3 @@ def generate_baby_with_api(prompt):
     print("generate_baby_with_api", response.json())
 
     return False
-
-def generate_baby_with_model(_prompt):
-    pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
-    pipe.to("mps")
-
-    images = pipe(prompt=_prompt).images[0]
-    print(images)
-    # if(not images):
-    #     return False
-    
-    # filename = 'img_' + time.strftime("%Y%m%d%H%M%S") + '.png'
-    # file_path = 'static/imgs/' + filename
-    # images.save(file_path) 
-
-    # return filename
-
-# def fx_cartoon():
