@@ -1,10 +1,25 @@
+import io
 import os
+import base64
+import pydash
+import uuid
+from timeit import default_timer as timer
+from datetime import timedelta
 from fastapi import FastAPI, UploadFile
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from generate_baby import detect_face, generate_baby_with_api
 from fastapi.middleware.cors import CORSMiddleware
-import random
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse, FileResponse
+from pydantic import BaseModel
+from PIL import Image
+from services.face_plus_plus import FacePlusPLus
+from services.pixlr_ai import PixlrAI
+
+# import logging
+# import logging.config
+
+# config_file = os.path.abspath('configs/logging.conf')
+# logging.config.fileConfig(config_file)
+# logger = logging.getLogger('simpleExample')
 
 app = FastAPI()
 app.add_middleware(
@@ -22,58 +37,58 @@ class GenerateData(BaseModel):
     mom_percent: int = 0
     sex: str = 'female'
 
-def build_prompt(generate: GenerateData):
-    """
-    Generate a prompt for a portrait of a female baby based on the provided generated data.
+def save_image(base64_image : str, prefix : str = 'output', is_only_name : bool = False) -> str:
+    decoded_bytes = base64.b64decode(base64_image)
+    image = Image.open(io.BytesIO(decoded_bytes))
 
-    Args:
-        generate (GenerateData): The generated data object containing the paths to the mom and dad images.
+    image_name = prefix + '_' + uuid.uuid4().hex + '.png'
+    save_image_path = os.path.abspath(f'static/imgs/generated/{image_name}')
+    image.save(save_image_path)
+    
+    if is_only_name:
+        return image_name
+    
+    return save_image_path
 
-    Returns:
-        str: The generated prompt for a portrait of a female baby, which includes the facial features of the dad and mom.
-            If the mom or dad image file is not found, an error message is returned instead.
-    """
-    prompt = '3 month old child, ' + generate.sex + ', smile, Vietnamese people, cartoonize style, portrait, full color, '
+def merge_image(source_file : str, merge_file : str, merge_rate : int = 50) -> str:
+    service = FacePlusPLus()
 
-    mom_select = []
-    if(0 != generate.mom_percent):
-        mom_file_location = generate.mom
-        if(not os.path.exists(f"static/imgs/{mom_file_location}")):
-            return {"error": "mom file not found"}
+    source_path = os.path.abspath(f'static/imgs/upload/{source_file}')
+    merge_path = os.path.abspath(f'static/imgs/upload/{merge_file}')
 
-        mom_detect = detect_face(mom_file_location)
-        num_of_resembles = int(len(mom_detect) * generate.mom_percent / 100)
-        if 0 == num_of_resembles:
-            num_of_resembles = 1
+    base64_image = service.merge_face(source_path = source_path, merge_path = merge_path, merge_rate = merge_rate)
+    save_image_path = save_image(base64_image = base64_image)
+    
+    return save_image_path
+
+def remix(image_path : str = '', sex : str = 'female'):
+    PROMPT = f"Transform a person's image into a {sex} 3-month-old baby. Baby is wispy hair, relaxed pose. Baby is smiling. Utilize simple shapes, bold outlines, and limited color palettes. Think of popular flat design illustrations like those used in children's books or mobile apps. Keep the focus on the essential features of the baby"
+    NAGATIVE = "Excessive shading, textures, intricate patterns"
+    
+    service = PixlrAI()
+    return service.remix(prompt = PROMPT, negative = NAGATIVE, image_path = image_path)
+
+def generate_baby_with_api(generate: GenerateData):
+    source_file = generate.mom
+    merge_file = generate.dad
+    merge_rate = generate.mom_percent
+    
+    if 50 < generate.dad_percent:
+        source_file = generate.dad
+        merge_file = generate.mom
+        merge_rate = generate.dad_percent
+    
+    merge_image_path = merge_image(source_file = source_file, merge_file = merge_file, merge_rate = merge_rate)
+    generated_images = remix(image_path = merge_image_path, sex = generate.sex)
+    
+    paths = []
+    for image in generated_images:
+        base64_image = pydash.get(image, 'image')
+        base64_image = base64_image.replace('data:image/png;base64,', '')
         
-        mom_select = random.sample(mom_detect, num_of_resembles)
-
-        print("mom_select:::", ', '.join(mom_select))
-        
-    dad_select = []
-    if(0 != generate.dad_percent):
-        dad_file_location = generate.dad
-        if(not os.path.exists(f"static/imgs/{dad_file_location}")):
-            return {"error": "dad file not found"}
-
-        dad_detect = detect_face(dad_file_location)
-        num_of_resembles = int(len(dad_detect) * generate.dad_percent / 100)
-        if 0 == num_of_resembles:
-            num_of_resembles = 1
-
-        dad_select = random.sample(dad_detect, num_of_resembles)
-
-        print("dad_select:::", ', '.join(dad_select))
-
-    selected = mom_select + dad_select
-    unique_selected = set(selected)
-    selected_promt = ", ".join(list(unique_selected))
-
-    prompt += selected_promt
-
-    print("finally_prompt:::", prompt)
-
-    return prompt
+        paths.append(save_image(base64_image = base64_image, prefix = 'ai_output', is_only_name = True))
+    
+    return paths
 
 @app.get("/")
 async def root():
@@ -84,6 +99,22 @@ async def root():
         where the key is "message" and the value is "Hello World".
     """
     return {"message": "Hello World"}
+
+@app.get("/image")
+async def get_image(file_name : str = ''):
+    """
+    A function that serves as the endpoint for the "/image" route.
+    This function does not take any parameters and does not return anything.
+    """
+    print(file_name)
+    if '' == file_name:
+        response = {
+            'error': 'no file name'
+        }
+        return JSONResponse(content = response)
+    
+    path = os.path.abspath(f'static/imgs/generated/{file_name}')
+    return FileResponse(path=path)
 
 @app.post("/upload")
 async def upload_file(file: UploadFile):
@@ -99,7 +130,7 @@ async def upload_file(file: UploadFile):
         - 'filename': A string representing the filename of the uploaded file.
     """
     filename_tmp = file.filename
-    file_location = f"static/imgs/{filename_tmp}"
+    file_location = f"static/imgs/upload/{filename_tmp}"
 
     try:
         with open(file_location, "wb+") as file_object:
@@ -117,17 +148,14 @@ async def generate_with_api(generate: GenerateData):
     - generate (GenerateData): The data used to generate the image.
 
     Returns:
-    - dict: A dictionary containing the generated image filename or an error message.
+    - A dictionary containing the generated image filename or an error message.
     """
-    print("Build prompt")
-    prompt = build_prompt(generate)
-    print("Built")
 
-    print("Generating baby face")
-    filename = generate_baby_with_api(prompt)
-    print("Generated", filename)
-    if(not filename):
-        return {"error": "failed to generate image"}
-
-    _path = "static/imgs/" + filename
-    return FileResponse(path=_path, media_type="image/png")
+    start_time = timer()
+    images = generate_baby_with_api(generate)
+    end_time = timer()
+    
+    total_time = end_time - start_time
+    
+    json_compatible_item_data = jsonable_encoder({"images": images, "elapsed_time": timedelta(seconds=total_time)})
+    return JSONResponse(content = json_compatible_item_data)

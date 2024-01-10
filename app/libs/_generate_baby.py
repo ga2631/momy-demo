@@ -2,7 +2,7 @@ import requests
 import shutil
 import time
 import os
-from token_api import FACESHAPE_TOKEN, HUGGINGFACE_API_TOKEN
+from app.configs._token import FACESHAPE_TOKEN, HUGGINGFACE_API_TOKEN
 
 def detect_face(image_name):
     API_URL = "https://api.faceshape.com/infer_img/faceshape_full"
