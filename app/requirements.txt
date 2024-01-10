@@ -3,6 +3,9 @@ anyio==4.2.0
 certifi==2023.11.17
 charset-normalizer==3.3.2
 click==8.1.7
+dlib==19.24.2
+face-recognition==1.3.0
+face_recognition_models==0.3.0
 fastapi==0.108.0
 filelock==3.13.1
 fsspec==2023.12.2
@@ -22,6 +25,8 @@ pillow==10.2.0
 psutil==5.9.7
 pydantic==2.5.3
 pydantic_core==2.14.6
+pydash==7.0.6
+pyinstrument==4.6.1
 python-dotenv==1.0.0
 python-multipart==0.0.6
 PyWavelets==1.5.0
