@@ -38,6 +38,9 @@ After install virtualenv, you need go to `app` dir and create virtualenv.
 
 ```sh
 cd app
+```
+
+```sh
 virtualenv enviroments
 ```
 
@@ -87,12 +90,15 @@ Then, depends on you want baby is male or female (select at "Sex" option in clie
 ## Pricing
 
 > No such thing as a free lunch
+>
 > -- Pierre Dos Utt
 
 The APIs we use are paid. 1 request generate is 0.12$. For detail, please keep an eye on reading
 
-Face++ merge API[^4] is <strong>0.1\$</strong>\/reqeust
+Face++ merge API[^4] is <strong>0.1\$</strong>\/request
+
 Pixlr plus with 1.99\$\/80 Credits\/month[^5] equivalent to <strong>0.02\$</strong>\/4 credits\/4 image
+
 **Total**: you must be charge <strong>0.12\$</strong>\/4 baby image
 
 [^1]: [Momy document research](https://colab.research.google.com/drive/1nJF1ZEi2VVKQHCjowKQekZiHXKos2Ukd#scrollTo=9pctmf7KmGvS)
