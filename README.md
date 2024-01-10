@@ -2,13 +2,13 @@
 Appplication name: "Demo Momy backend"
 Author: "Tan Huynh Nhat"
 Created date: "08/01/2024"
+Version: "0.0.1 (Alpha)"
 ---
+
+# Source code demo Momy AI generate baby face
 
 [![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
 [![Open In Collab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nJF1ZEi2VVKQHCjowKQekZiHXKos2Ukd#scrollTo=9pctmf7KmGvS)
-
-
-# Source code demo Momy AI generate baby face
 
 A simple code to generate baby face use some AI tool. This repo only use to demo, so the source code is not clear and not safety
 
