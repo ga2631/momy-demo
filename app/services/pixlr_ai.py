@@ -1,7 +1,7 @@
 """
 Pixlr service
 
-Website: pixlr.com
+Website: https://pixlr.com/image-generator/
 Documentation: (Not found)
 """
 

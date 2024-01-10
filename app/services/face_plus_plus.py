@@ -1,7 +1,7 @@
 """
 Face++ service
 
-Website: faceplusplus.com
+Website: https://www.faceplusplus.com/
 Documentation: https://console.faceplusplus.com/documents/6329700
 """
 
