@@ -2,6 +2,13 @@ __pycache__
 enviroments
 
 app/static/imgs/**
+app/static/imgs/generated/**
+app/static/imgs/result/**
+app/static/imgs/upload/**
+!app/static/imgs/.gitignore
+!app/static/imgs/generated/.gitignore
+!app/static/imgs/result/.gitignore
+!app/static/imgs/upload/.gitignore
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

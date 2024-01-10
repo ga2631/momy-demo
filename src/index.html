@@ -10,6 +10,7 @@
         const HOST = "http://0.0.0.0:8000"
         let mom_file = '';
         let dad_file = '';
+        let elapsed_time = 0
 
         // Uploads the selected dad image to the server.
         //
@@ -46,7 +47,8 @@
                     return response.json();
                 })
                 .then((result) => {
-                    mom_file = result.filename
+                    let files = result.file
+                    dad_file = result.filename
                 })
                 .catch((error) => {
                     console.error(error)
@@ -95,7 +97,8 @@
                     return response.json();
                 })
                 .then((result) => {
-                    dad_file = result.filename
+                    let files = result.file
+                    mom_file = result.filename
                 })
                 .catch((error) => {
                     console.error(error)
@@ -172,13 +175,38 @@
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
-                return response.blob()
+                return response.text()
             })
-            .then((responseBlob) => {
-                document.querySelector('#img_baby').src = URL.createObjectURL(responseBlob)
+            .then((response) => {
+                let json = JSON.parse(response)
+                let images = json.images
+                let elapsed_time = json.elapsed_time
 
-                document.querySelector("#progress").innerHTML = "";
-                document.querySelector("#baby_file").style.display = "block";
+                document.querySelector("#elapsed_time").textContent = elapsed_time;
+
+                let promise = Promise.resolve();
+                for (const index in images) {
+                    let endpoint = HOST + "/image?file_name=" + images[index]
+                    let options = {
+                        method: "GET",
+                    }
+                    promise = promise.then(() => fetch(endpoint, options))
+                    .then(result => {
+                        return result.blob(); 
+                    })
+                    .then(responseBlob => {
+                        document.querySelector('#img_baby_' + index).src = URL.createObjectURL(responseBlob)
+                    })
+                    .catch(status, err => {
+                        return console.log(status, err);
+                    })
+                }
+
+                promise.then((response) => {
+                    document.querySelector("#progress").innerHTML = "";
+                    document.querySelector("#baby_file").style.display = "block";
+                });
+
             })
             .catch((error) => {
                 document.querySelector("#progress").innerHTML = error;
@@ -255,12 +283,41 @@
         <div class="text-center" id="progress"></div>
         <div id="baby_file" class="text-center" style="display: none;">
             <h2>Baby image</h2>
-            <img 
-                id="img_baby"
-                src=""
-                width="300"
-                class="rounded"
-            >
+            <div class="row">
+                <div class="col-3">
+                    <img 
+                        id="img_baby_0"
+                        src=""
+                        width="300"
+                        class="rounded"
+                    >
+                </div>
+                <div class="col-3">
+                    <img 
+                        id="img_baby_1"
+                        src=""
+                        width="300"
+                        class="rounded"
+                    >
+                </div>
+                <div class="col-3">
+                    <img 
+                        id="img_baby_2"
+                        src=""
+                        width="300"
+                        class="rounded"
+                    >
+                </div>
+                <div class="col-3">
+                    <img 
+                        id="img_baby_3"
+                        src=""
+                        width="300"
+                        class="rounded"
+                    >
+                </div>
+            </div>
+            <p>Elapsed time: <span id="elapsed_time"></span> (s)</p>
         </div>
     </div>
 
