@@ -81,7 +81,7 @@ In client page, you can see 5 option generate:
 4. Dad 75% - 25% Mom
 5. Dad 100% - 0% Mom
 
-By default, baby use face of Mom is base (face, jaw). If Dad similar percent > 75%, use face of Dad is base.
+By default, baby use face of Mom is base (face, jaw). If Dad similar percent > 50%, use face of Dad is base.
 
 When you have 2 image of parents, we use Face++[^2] to merge 2 face in 1 face with merge rate is selected option above.
 
