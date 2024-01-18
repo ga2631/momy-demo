@@ -91,7 +91,14 @@ class PixlrAI:
         
         print('Calling Pixlr API...')
         # logger.debug('Calling API...')
-        response = requests.post(ENDPOINT, files=FILES, data=DATA)
+        try:
+            response = requests.post(ENDPOINT, files=FILES, data=DATA)
+        except NameError:
+            print(NameError)
+
+            return False
+            
+        print(response)
         
         if(200 != response.status_code):
             print('Catch error response. Response :::: {}'.format(response.json()))

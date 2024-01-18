@@ -1,49 +1,64 @@
-import io
 import os
-import base64
-import time
-import pydash
+import uuid
 from PIL import Image
-from services.face_plus_plus import FacePlusPLus
-from services.pixlr_ai import PixlrAI
+from io import BytesIO
+import requests
+from services.useapi import UseApi
+from services.discord import Discord
 
-def save_image(base64_image : str):
-    decoded_bytes = base64.b64decode(base64_image)
-    image = Image.open(io.BytesIO(decoded_bytes))
+def crop_image(image, image_path, x, y, w = 512, h = 512):
+    response = requests.get(image)
+    image = Image.open(BytesIO(response.content))
 
-    save_image_path = os.path.abspath('static/imgs/facepp_output_' + time.strftime("%Y%m%d%H%M%S") + '.png')
-    image.save(save_image_path)
+    # Crop the image
+    cropped_image = image.crop((x, y, w, h))
+
+    # Save the cropped image
+    cropped_image.save(image_path)
     
-    return save_image_path
+    return image_path
 
-def merge_image(source_file : str, merge_file : str) -> str:
-    service = FacePlusPLus()
-
-    source_path = os.path.abspath(f'static/imgs/{source_file}')
-    merge_path = os.path.abspath(f'static/imgs/{merge_file}')
-
-    base64_image = service.merge_face(source_path=source_path, merge_path=merge_path, merge_rate=50)
-    save_image_path = save_image(base64_image)
+def main(mom_img_url : str, dad_img_url : str, sex : str = 'male', mom_rate : int = 50, dad_rate : int = 50):
+    request_id = uuid.uuid4()
     
-    return save_image_path
-
-def remix(image_path : str = ''):
-    PROMPT = "Transform a person's image into a female 3-month-old baby. Baby is wispy hair, relaxed pose. Baby is smiling Utilize simple shapes, bold outlines, and limited color palettes. Think of popular flat design illustrations like those used in children's books or mobile apps. Keep the focus on the essential features of the baby."
-    NAGATIVE = "Excessive shading, textures, intricate patterns"
+    prompt = "{} {} simple sticker cartoon neonate {} face, neonate boy face is smiling, image 1 similar rate is {}% and image 2 similar rate is {}% in white background, simple graphic design, symmetrical, 300 dpi, –-no glasses, –-no mockup --v 4 --s 750".format(mom_img_url, dad_img_url, sex, mom_rate, dad_rate)
     
-    service = PixlrAI()
-    return service.remix(prompt = PROMPT, negative = NAGATIVE, image_path = image_path)
+    print("PROMPT : {}".format(prompt))
 
-source_file = 'z5051735287581_61563fed7ae7e100aeec87606cebddab.jpg'
-merge_file = 'z5051735270951_60a7f4087bd6727f1609116a97e6fa8f.jpg'
-merge_path = merge_image(source_file, merge_file)
-generated_images = remix(image_path = merge_path)
-
-paths = []
-for image in generated_images:
-    base64_image = pydash.get(image, 'image')
-    base64_image = base64_image.replace('data:image/png;base64,', '')
+    print("Generating...")
+    useapi = UseApi()
+    imagine_response = useapi.imagine(prompt)
     
-    paths.append(save_image(base64_image))
+    image_url = imagine_response.attachments[0].url
+    print("GENERATE_IMAGE_URL : {}".format(image_url))
 
-print(paths)
+    image_paths = list([])
+        
+    image_path_1 = os.path.abspath(f'static/imgs/generated/{request_id}_1.png')
+    image_paths.append(crop_image(image_url, image_path_1, 0, 0))
+    
+    image_path_2 = os.path.abspath(f'static/imgs/generated/{request_id}_2.png')
+    image_paths.append(crop_image(image_url, image_path_2, 513, 0, 1024))
+    
+    image_path_3 = os.path.abspath(f'static/imgs/generated/{request_id}_3.png')
+    image_paths.append(crop_image(image_url, image_path_3, 0, 513, 512, 1024))
+    
+    image_path_4 = os.path.abspath(f'static/imgs/generated/{request_id}_4.png')
+    image_paths.append(crop_image(image_url, image_path_4, 513, 513, 1024, 1024))
+    
+    print("IMAGE_PATHS : {}".format(image_paths.__str__()))
+
+    pass
+
+def generate_baby():
+    mom_file_path = 'static/imgs/upload/412039575_3645580589019831_3979029158204138001_n.jpg'
+    dad_file_path = 'static/imgs/upload/IMG_4029.jpeg'
+    file_paths = list([mom_file_path, dad_file_path])
+    print("IMAGE IS UPLOADING...")
+    
+    discord = Discord()
+    attachment_urls = discord.upload('1195296642174300322', file_paths = file_paths)
+    
+    main(mom_img_url = attachment_urls[0], dad_img_url = attachment_urls[1], mom_rate = 50, dad_rate = 50, sex = 'female')
+
+generate_baby()

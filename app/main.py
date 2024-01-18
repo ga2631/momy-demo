@@ -1,8 +1,8 @@
-import io
 import os
-import base64
-import pydash
-import uuid
+from io import BytesIO
+from requests import get as request_get
+from uuid import uuid4
+from base64 import b64decode
 from timeit import default_timer as timer
 from datetime import timedelta
 from fastapi import FastAPI, UploadFile
@@ -11,13 +11,14 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from PIL import Image
-from services.face_plus_plus import FacePlusPLus
-from services.pixlr_ai import PixlrAI
+from services.discord import Discord
+from services.useapi import UseApi
+from configs.token import DISCORD_CHANNEL_ID
 
 # import logging
 # import logging.config
 
-# config_file = os.path.abspath('configs/logging.conf')
+# config_file = path.abspath('configs/logging.conf')
 # logging.config.fileConfig(config_file)
 # logger = logging.getLogger('simpleExample')
 
@@ -33,15 +34,15 @@ app.add_middleware(
 class GenerateData(BaseModel):
     mom: str
     dad: str
-    dad_percent: int = 100
-    mom_percent: int = 0
+    dad_percent: int = 0
+    mom_percent: int = 100
     sex: str = 'female'
 
 def save_image(base64_image : str, prefix : str = 'output', is_only_name : bool = False) -> str:
-    decoded_bytes = base64.b64decode(base64_image)
-    image = Image.open(io.BytesIO(decoded_bytes))
+    decoded_bytes = b64decode(base64_image)
+    image = Image.open(BytesIO(decoded_bytes))
 
-    image_name = prefix + '_' + uuid.uuid4().hex + '.png'
+    image_name = prefix + '_' + uuid4().hex + '.png'
     save_image_path = os.path.abspath(f'static/imgs/generated/{image_name}')
     image.save(save_image_path)
     
@@ -50,45 +51,56 @@ def save_image(base64_image : str, prefix : str = 'output', is_only_name : bool 
     
     return save_image_path
 
-def merge_image(source_file : str, merge_file : str, merge_rate : int = 50) -> str:
-    service = FacePlusPLus()
+def crop_image(image, image_file_name, x, y, w = 512, h = 512):
+    response = request_get(image)
+    image = Image.open(BytesIO(response.content))
 
-    source_path = os.path.abspath(f'static/imgs/upload/{source_file}')
-    merge_path = os.path.abspath(f'static/imgs/upload/{merge_file}')
+    # Crop the image
+    cropped_image = image.crop((x, y, w, h))
 
-    base64_image = service.merge_face(source_path = source_path, merge_path = merge_path, merge_rate = merge_rate)
-    save_image_path = save_image(base64_image = base64_image)
+    # Save the cropped image
+    image_path = os.path.abspath("static/imgs/generated/{}".format(image_file_name))
+    cropped_image.save(image_path)
     
-    return save_image_path
+    return image_file_name
 
-def remix(image_path : str = '', sex : str = 'female'):
-    PROMPT = f"Transform a person's image into a {sex} 3-month-old baby. Baby is wispy hair, relaxed pose. Baby is smiling. Utilize simple shapes, bold outlines, and limited color palettes. Think of popular flat design illustrations like those used in children's books or mobile apps. Keep the focus on the essential features of the baby"
-    NAGATIVE = "Excessive shading, textures, intricate patterns"
+def generate_baby(generate: GenerateData):
+    request_id = uuid4()
     
-    service = PixlrAI()
-    return service.remix(prompt = PROMPT, negative = NAGATIVE, image_path = image_path)
+    mom_url = generate.mom
+    dad_url = generate.dad
+    sex = generate.sex
+    mom_percent = generate.mom_percent
+    dad_percent = generate.dad_percent
+    
+    prompt = f"{mom_url} {dad_url} simple sticker cartoon neonate {sex} face, neonate {sex} face is smiling, image 1 similar rate is {mom_percent}% and image 2 similar rate is {dad_percent}% in white background, simple graphic design, symmetrical, 300 dpi, –-no glasses, –-no mockup --v 4 --s 750"
+    
+    print("PROMPT : {}".format(prompt))
 
-def generate_baby_with_api(generate: GenerateData):
-    source_file = generate.mom
-    merge_file = generate.dad
-    merge_rate = generate.mom_percent
+    print("BABY IS GENERATING ...")
+    useapi = UseApi()
+    imagine_response = useapi.imagine(prompt)
     
-    if 50 < generate.dad_percent:
-        source_file = generate.dad
-        merge_file = generate.mom
-        merge_rate = generate.dad_percent
-    
-    merge_image_path = merge_image(source_file = source_file, merge_file = merge_file, merge_rate = merge_rate)
-    generated_images = remix(image_path = merge_image_path, sex = generate.sex)
-    
-    paths = []
-    for image in generated_images:
-        base64_image = pydash.get(image, 'image')
-        base64_image = base64_image.replace('data:image/png;base64,', '')
+    image_url = imagine_response.attachments[0].url
+    print("GENERATE_IMAGE_URL : {}".format(image_url))
+
+    image_file_names = list([])
         
-        paths.append(save_image(base64_image = base64_image, prefix = 'ai_output', is_only_name = True))
+    image_file_name_1 = "{}_1.png".format(request_id)
+    image_file_names.append(crop_image(image_url, image_file_name_1, 0, 0))
     
-    return paths
+    image_file_name_2 = "{}_2.png".format(request_id)
+    image_file_names.append(crop_image(image_url, image_file_name_2, 513, 0, 1024))
+    
+    image_file_name_3 = "{}_3.png".format(request_id)
+    image_file_names.append(crop_image(image_url, image_file_name_3, 0, 513, 512, 1024))
+    
+    image_file_name_4 = "{}_4.png".format(request_id)
+    image_file_names.append(crop_image(image_url, image_file_name_4, 513, 513, 1024, 1024))
+    
+    print("IMAGE FILE NAMES : {}".format(image_file_names.__str__()))
+
+    return image_file_names
 
 @app.get("/")
 async def root():
@@ -113,7 +125,7 @@ async def get_image(file_name : str = ''):
         }
         return JSONResponse(content = response)
     
-    path = os.path.abspath(f'static/imgs/generated/{file_name}')
+    path = os.path.abspath("static/imgs/generated/{}".format(file_name))
     return FileResponse(path=path)
 
 @app.post("/upload")
@@ -137,7 +149,15 @@ async def upload_file(file: UploadFile):
             file_object.write(file.file.read())
     finally:
         file.file.close()
-    return {"info": f"file '{file.filename}' saved at '{file_location}'", "filename": filename_tmp}
+        
+    discord = Discord()
+    attachment_urls = discord.upload(channel_id = DISCORD_CHANNEL_ID, file_paths = list([file_location]))
+        
+    return {
+        "info": f"file '{file.filename}' saved at '{file_location}'", 
+        "filename": filename_tmp,
+        "file_url": attachment_urls[0]
+    }
 
 @app.post("/generate")
 async def generate_with_api(generate: GenerateData):
@@ -152,7 +172,7 @@ async def generate_with_api(generate: GenerateData):
     """
 
     start_time = timer()
-    images = generate_baby_with_api(generate)
+    images = generate_baby(generate)
     end_time = timer()
     
     total_time = end_time - start_time
