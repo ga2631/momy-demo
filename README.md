@@ -118,14 +118,14 @@ I can't find any plan of Discord pricing. But, I has been find discription of Di
 
 ### Midjourney
 
-Midjourney has 4 price plans[^3]
+Midjourney has 4 pricing plans[^3]
 
-|Plan|Pricing|Corresponding quantity (1 user = 45s)|
+|Plan|Price|Corresponding quantity (1 user = 45s)|
 |:-|-:|-:|
 |Basic|$10/3.3 hr(s)/month|264 users/month|
 |Standard|$15/15 hr(s)/month|1200 users/month|
-|Pro|$60/30 hr(s)/month|2400 users|
-|Mega|$120/60 hr(s)/month|4800 users|
+|Pro|$60/30 hr(s)/month|2400 users/month|
+|Mega|$120/60 hr(s)/month|4800 users/month|
 
 ### Useapi.net
 
