@@ -23,6 +23,7 @@ My research document in [here](https://colab.research.google.com/drive/1nJF1ZEi2
 |[requests](https://pypi.org/project/requests/2.31.0/)|2.31.0|HTTP library|
 |[pydantic](https://pypi.org/project/pydantic/2.5.3/)|2.5.3|Data validation library|
 |[pydash](https://pypi.org/project/pydash/7.0.6/)|7.0.6|Lo-Dash for python|
+|[midjourney_api_client](https://pypi.org/project/midjourney-api-client/1.0.1)|1.0.1|Useapi.net provides a simple, reliable and affordable way to use Midjourney via standard REST API|
 
 ## How to use
 
