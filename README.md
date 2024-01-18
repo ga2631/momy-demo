@@ -64,7 +64,7 @@ with:
 
 After start server, you can access the APIs of project. 
 
-If you need API documentation, you can go to this url [http://0.0.0.0:8000/docs](http://0.0.0.0:8000/docs). And boooom💥! All API are here
+If you need API documentation, you can go to this url [http://0.0.0.0:8000/docs](http://0.0.0.0:8000/docs). And... boooom💥! All API are here
 
 ### Client
 
@@ -72,20 +72,27 @@ Just easy, open file `src/index.html`. Done!!!
 
 ## How to AI generate work
 
-To generate baby image, you need an image of dad and an image of mom. You can upload in client page.
+To generate baby image, you need an image of parents, similar rate and sex of your AI baby. You can do that in client.
 
-In client page, you can see 5 option generate:
-1. Dad 0% - 100% Mom
-2. Dad 25% - 75% Mom
-3. Dad 50% - 50% Mom
-4. Dad 75% - 25% Mom
-5. Dad 100% - 0% Mom
+In client page, you can see 5 option `mom_percent` and `dad_percent` generate:
+1. Dad **0%** - **100%** Mom
+2. Dad **25%** - **75%** Mom
+3. Dad **50%** - **50%** Mom
+4. Dad **75%** - **25%** Mom
+5. Dad **100%** - **0%** Mom
 
-By default, baby use face of Mom is base (face, jaw). If Dad similar percent > 50%, use face of Dad is base.
+And, you can also see 2 option of `sex`:
+* **Male**: is baby boy
+* **Female**: is baby girl
 
-When you have 2 image of parents, we use Face++[^2] to merge 2 face in 1 face with merge rate is selected option above.
+When you upload image of parents, I save these images to server and upload to [Discord](https://discord.com). After upload to Discord, I will receive `mom_url` and `dad_url`.
 
-Then, depends on you want baby is male or female (select at "Sex" option in client too), we create an prompt to generate merged image to baby with cartoon style. The AI we use is Pixlr[^3].
+Then, from your option selected, I generate a prompt for [Midjourney AI](https://www.midjourney.com/explore). Prompt structure is below
+```
+{mom_url} {dad_url} simple sticker cartoon neonate {sex} face, neonate {sex} face is smiling, image 1 similar rate is {mom_percent}% and image 2 similar rate is {dad_percent}% in white background, simple graphic design, symmetrical, 300 dpi, –-no glasses, –-no mockup --v 4 --s 750
+```
+
+After that, I use API of [useapi.net](https://useapi.net) to generate AI baby image.
 
 ## Pricing
 
@@ -93,16 +100,38 @@ Then, depends on you want baby is male or female (select at "Sex" option in clie
 >
 > -- Pierre Dos Utt
 
-The APIs we use are paid. 1 request generate is 0.12$. For detail, please keep an eye on reading
+In this project, I use Midjourney basic plan and useapi.net subscribe. Total price is **$20**/month
 
-Face++ merge API[^4] is <strong>0.1\$</strong>\/request
+Base on Midjourney time generate to calculate cost of per user. Corporeality:
+* Averange time of generate is 45 seconds = **$0.038**
+* Fixed costs of useapi.net is **$0.038**
+* Total cost of 1 user is **$0.076** ~ **1,866.75 VND**
 
-Pixlr plus with 1.99\$\/80 Credits\/month[^5] equivalent to <strong>0.02\$</strong>\/4 credits\/4 image
+### Discord
 
-**Total**: you must be charge <strong>0.12\$</strong>\/4 baby image
+I can't find any plan of Discord pricing. But, I has been find discription of Discord[^2]
+
+>All bots can make up to 50 requests per second to our API. If no authorization header is provided, then the limit is applied to the IP address. This is independent of any individual rate limit on a route. If your bot gets big enough, based on its functionality, it may be impossible to stay below 50 requests per second during normal operations.
+>
+>Global rate limit issues generally show up as repeatedly getting banned from the Discord API when your bot starts (see below). If your bot gets temporarily Cloudflare banned from the Discord API every once in a while, it is most likely not a global rate limit issue. You probably had a spike of errors that was not properly handled and hit our error threshold.
+
+### Midjourney
+
+Midjourney has 4 price plans[^3]
+
+|Plan|Pricing|Corresponding quantity (1 user = 45s)|
+|:-|-:|-:|
+|Basic|$10/3.3 hr(s)/month|264 users/month|
+|Standard|$15/15 hr(s)/month|1200 users/month|
+|Pro|$60/30 hr(s)/month|2400 users|
+|Mega|$120/60 hr(s)/month|4800 users|
+
+### Useapi.net
+
+**$10/monthly** subscription.[^4]
+
 
 [^1]: [Momy document research](https://colab.research.google.com/drive/1nJF1ZEi2VVKQHCjowKQekZiHXKos2Ukd#scrollTo=9pctmf7KmGvS)
-[^2]: [Face++](https://www.faceplusplus.com/) AI Open Platform is a platform offering computer vision technologies
-[^3]: [Pixlr](https://pixlr.com/image-generator/) Generate an image using Generative AI by describing what you want to see
-[^4]: [Face++ Image Beautify API price plan](https://www.faceplusplus.com/v2/pricing-details/#api_3) 
-[^5]: [Pixlr price plan](https://pixlr.com/pricing) 
+[^2]: [Discord Rate Limits](https://discord.com/developers/docs/topics/rate-limits)
+[^3]: [Midjourney pricing plan](https://docs.midjourney.com/docs/plans)
+[^4]: [Useapi.net pricing plan](https://useapi.net/docs/subscription)
