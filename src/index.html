@@ -12,6 +12,9 @@
         let dad_file = '';
         let elapsed_time = 0
 
+        let baby_id = '';
+        let baby_images = []
+
         // Uploads the selected dad image to the server.
         //
         // Parameters:
@@ -130,7 +133,7 @@
                 dad: dad_file,
                 dad_percent: 0,
                 mom_percent: 100,
-                sex: 'female'
+                sex: 'girl'
             }
 
             let percent = parseInt(document.querySelector('input[name=rate]:checked').value);
@@ -185,14 +188,15 @@
             })
             .then((response) => {
                 let json = JSON.parse(response)
-                let images = json.images
                 let elapsed_time = json.elapsed_time
+                
+                baby_images = json.images
 
                 document.querySelector("#elapsed_time").textContent = elapsed_time;
 
                 let promise = Promise.resolve();
-                for (const index in images) {
-                    let endpoint = HOST + "/image?file_name=" + images[index]
+                for (const index in baby_images) {
+                    let endpoint = HOST + "/image?file_name=" + baby_images[index]
                     let options = {
                         method: "GET",
                     }
@@ -216,6 +220,70 @@
             })
             .catch((error) => {
                 document.querySelector("#progress").innerHTML = error;
+            })
+        }
+
+        function generateEmotionWithApi(){
+            let image_index = document.querySelector("input[name=img_baby]:checked").value;
+            
+            document.querySelector("#progress_emotion").innerHTML = "generating...";
+            document.querySelector("#baby_emotion_file").style.display = "none";
+
+            let endpoint = HOST + "/generate/emotions"
+
+            let data = {
+                image: baby_images[image_index],
+                sex: 'girl'
+            }
+
+            let options = {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }
+
+            return fetch(endpoint, options)
+            .then((response) => {
+                if (!response.ok) 
+                {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                return response.text()
+            })
+            .then((response) => {
+                let json = JSON.parse(response)
+                let images = json.images
+                let elapsed_time = json.elapsed_time
+
+                document.querySelector("#elapsed_emotion_time").textContent = elapsed_time;
+
+                let promise = Promise.resolve();
+                for (const index in images) {
+                    let endpoint = HOST + "/image?file_name=" + images[index]
+                    let options = {
+                        method: "GET",
+                    }
+                    promise = promise.then(() => fetch(endpoint, options))
+                    .then(result => {
+                        return result.blob(); 
+                    })
+                    .then(responseBlob => {
+                        document.querySelector('#img_emotion_baby_' + index).src = URL.createObjectURL(responseBlob)
+                    })
+                    .catch(status, err => {
+                        return console.log(status, err);
+                    })
+                }
+
+                promise.then((response) => {
+                    document.querySelector("#progress_emotion").innerHTML = "";
+                    document.querySelector("#baby_emotion_file").style.display = "block";
+                });
+
+            })
+            .catch((error) => {
+                document.querySelector("#progress_emotion").innerHTML = error;
             })
         }
     </script>
@@ -262,12 +330,12 @@
 
                 <h2>Sex</h2>
                 <div>
-                    <input name="sex" id="input-female" type="radio" value="girl" checked>
-                    <label for="input-female">Female</label>
+                    <input name="sex" id="input-girl" type="radio" value="girl" checked>
+                    <label for="input-girl">girl</label>
                 </div>
                 <div>
-                    <input name="sex" id="input-male" type="radio" value="boy">
-                    <label for="input-male">Male</label>
+                    <input name="sex" id="input-boy" type="radio" value="boy">
+                    <label for="input-boy">boy</label>
                 </div>
             </div>
             <div class="col-md-5 text-center">
@@ -291,35 +359,109 @@
             <h2>Baby image</h2>
             <div class="row">
                 <div class="col-md-3">
-                    <img 
-                        id="img_baby_0"
-                        src=""
-                        class="rounded img-fluid"
-                    >
+                    <input 
+                        id="baby_0" 
+                        name="img_baby"
+                        type="radio" 
+                        value="0"
+                    />
+                    <label for="baby_0">
+                        <img 
+                            id="img_baby_0"
+                            src=""
+                            class="rounded img-fluid"
+                        >
+                    </label>
                 </div>
                 <div class="col-md-3">
-                    <img 
-                        id="img_baby_1"
-                        src=""
-                        class="rounded img-fluid"
-                    >
+                    <input 
+                        id="baby_1" 
+                        name="img_baby"
+                        type="radio" 
+                        value="1"
+                    />
+                    <label for="baby_1">
+                        <img 
+                            id="img_baby_1"
+                            src=""
+                            class="rounded img-fluid"
+                        >
+                    </label>
                 </div>
                 <div class="col-md-3">
-                    <img 
-                        id="img_baby_2"
-                        src=""
-                        class="rounded img-fluid"
-                    >
+                    <input 
+                        id="baby_2" 
+                        name="img_baby"
+                        type="radio" 
+                        value="2"
+                    />
+                    <label for="baby_2">
+                        <img 
+                            id="img_baby_2"
+                            src=""
+                            class="rounded img-fluid"
+                        >
+                    </label>
                 </div>
                 <div class="col-md-3">
-                    <img 
-                        id="img_baby_3"
-                        src=""
-                        class="rounded img-fluid"
-                    >
+                    <input 
+                        id="baby_3" 
+                        name="img_baby"
+                        type="radio" 
+                        value="3"
+                    />
+                    <label for="baby_3">
+                        <img 
+                            id="img_baby_3"
+                            src=""
+                            class="rounded img-fluid"
+                        >
+                    </label>
                 </div>
             </div>
             <p>Elapsed time: <span id="elapsed_time"></span> (s)</p>
+
+            <button type="button" class="btn btn-primary" onclick="generateEmotionWithApi()">Generate emotion</button>
+            <div id="progress_emotion" class="text-center"></div>
+            <div id="baby_emotion_file" class="text-center" style="display: none;"></div>
+                <div class="text-center">
+                    <div id="baby_file_" class="text-center">
+                        <h2>Baby emotion</h2>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <img 
+                                    id="img_emotion_baby_0"
+                                    src=""
+                                    class="rounded img-fluid"
+                                >
+                            </div>
+                            <div class="col-md-3">
+                                <img 
+                                    id="img_emotion_baby_1"
+                                    src=""
+                                    class="rounded img-fluid"
+                                >
+                            </div>
+                            <div class="col-md-3">
+                                <img 
+                                    id="img_emotion_baby_2"
+                                    src=""
+                                    class="rounded img-fluid"
+                                >
+                            </div>
+                            <div class="col-md-3">
+                                <img 
+                                    id="img_emotion_baby_3"
+                                    src=""
+                                    class="rounded img-fluid"
+                                >
+                            </div>
+                        </div>
+                    </div>
+    
+                    <p>Elapsed emotion time: <span id="elapsed_emotion_time"></span> (s)</p>
+                </div>
+            </div>
         </div>
     </div>
 

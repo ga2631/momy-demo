@@ -36,7 +36,11 @@ class GenerateData(BaseModel):
     dad: str
     dad_percent: int = 0
     mom_percent: int = 100
-    sex: str = 'female'
+    sex: str = 'girl'
+    
+class EmotionData(BaseModel):
+    image: str
+    sex: str
 
 def save_image(base64_image : str, prefix : str = 'output', is_only_name : bool = False) -> str:
     decoded_bytes = b64decode(base64_image)
@@ -64,6 +68,13 @@ def crop_image(image, image_file_name, x, y, w = 512, h = 512):
     
     return image_file_name
 
+def upload_to_discord(file_location : str):
+    discord = Discord()
+    attachment_urls = discord.upload(channel_id = DISCORD_CHANNEL_ID, file_paths = list([file_location]))
+        
+    return attachment_urls
+    
+
 def generate_baby(generate: GenerateData):
     request_id = uuid4()
     
@@ -73,30 +84,89 @@ def generate_baby(generate: GenerateData):
     mom_percent = generate.mom_percent
     dad_percent = generate.dad_percent
     
-    prompt = f"{mom_url} {dad_url} simple sticker cartoon neonate {sex} face, neonate {sex} face is smiling, image 1 similar rate is {mom_percent}% and image 2 similar rate is {dad_percent}% in white background, simple graphic design, symmetrical, 300 dpi, –-no glasses, –-no mockup --v 4 --s 750"
+    prompt = f"{mom_url} {dad_url} a baby {sex}:: face, smiling, {mom_percent}% of first image and {dad_percent}% of second image, simple graphic design, in the style of flat shading, white background, bright tones, 8k resolution, high speed sync, --no glasses, sunglasses, mockup --style cute --s 300 --niji 5"
     
     print("PROMPT : {}".format(prompt))
 
     print("BABY IS GENERATING ...")
+    
+    start_time = timer()
     useapi = UseApi()
     imagine_response = useapi.imagine(prompt)
+    end_time = timer()
+    
+    total_time = end_time - start_time
+    print(f"GENERATE TIME : {total_time}")
     
     image_url = imagine_response.attachments[0].url
     print("GENERATE_IMAGE_URL : {}".format(image_url))
 
+    print("IMAGE SPLITING...")
+    start_time = timer()
     image_file_names = list([])
         
     image_file_name_1 = "{}_1.png".format(request_id)
-    image_file_names.append(crop_image(image_url, image_file_name_1, 0, 0))
+    image_file_names.append(crop_image(image_url, image_file_name_1, 0, 0, 1024, 1024))
     
     image_file_name_2 = "{}_2.png".format(request_id)
-    image_file_names.append(crop_image(image_url, image_file_name_2, 513, 0, 1024))
+    image_file_names.append(crop_image(image_url, image_file_name_2, 1025, 0, 2048, 1024))
     
     image_file_name_3 = "{}_3.png".format(request_id)
-    image_file_names.append(crop_image(image_url, image_file_name_3, 0, 513, 512, 1024))
+    image_file_names.append(crop_image(image_url, image_file_name_3, 0, 1025, 1025, 2048))
     
     image_file_name_4 = "{}_4.png".format(request_id)
-    image_file_names.append(crop_image(image_url, image_file_name_4, 513, 513, 1024, 1024))
+    image_file_names.append(crop_image(image_url, image_file_name_4, 1025, 1025, 2048, 2048))
+    end_time = timer()
+    print("IMAGE SPLIT TIME : {}".format(end_time))
+    
+    print("IMAGE FILE NAMES : {}".format(image_file_names.__str__()))
+
+    return image_file_names
+
+def generate_emotions(data: EmotionData):
+    filename_tmp = data.image
+    file_location = f"static/imgs/generated/{filename_tmp}"
+    
+    attachment_urls = upload_to_discord(file_location)
+    attachment_url = attachment_urls[0]
+    
+    sex = data.sex
+    prompt = f"{attachment_url} a baby {sex} is shown at various emotions expressions with eyes and mouths, in the style of flat shading, white background, 8k resolution, high speed sync, 9 in 1, horizontal justify image --no mockup, sunglasses, glasses --style cute --s 100 --niji 5"
+    
+    print("PROMPT : {}".format(prompt))
+
+    print("BABY IS GENERATING ...")
+    
+    start_time = timer()
+    useapi = UseApi()
+    imagine_response = useapi.imagine(prompt)
+    end_time = timer()
+    
+    total_time = end_time - start_time
+    print(f"GENERATE TIME : {total_time}")
+    
+    image_url = imagine_response.attachments[0].url
+    print("GENERATE_IMAGE_URL : {}".format(image_url))
+
+    print("IMAGE SPLITING...")
+    start_time = timer()
+    image_file_names = list([])
+
+    filename_tmp.replace('.png', '')
+    
+    image_file_name_1 = "{}_emotion_1.png".format(filename_tmp)
+    image_file_names.append(crop_image(image_url, image_file_name_1, 0, 0, 1024, 1024))
+    
+    image_file_name_2 = "{}_emotion_2.png".format(filename_tmp)
+    image_file_names.append(crop_image(image_url, image_file_name_2, 1025, 0, 2048, 1024))
+    
+    image_file_name_3 = "{}_emotion_3.png".format(filename_tmp)
+    image_file_names.append(crop_image(image_url, image_file_name_3, 0, 1025, 1025, 2048))
+    
+    image_file_name_4 = "{}_emotion_4.png".format(filename_tmp)
+    image_file_names.append(crop_image(image_url, image_file_name_4, 1025, 1025, 2048, 2048))
+    end_time = timer()
+    print("IMAGE SPLIT TIME : {}".format(end_time))
     
     print("IMAGE FILE NAMES : {}".format(image_file_names.__str__()))
 
@@ -149,9 +219,8 @@ async def upload_file(file: UploadFile):
             file_object.write(file.file.read())
     finally:
         file.file.close()
-        
-    discord = Discord()
-    attachment_urls = discord.upload(channel_id = DISCORD_CHANNEL_ID, file_paths = list([file_location]))
+
+    attachment_urls = upload_to_discord(file_location)
         
     return {
         "info": f"file '{file.filename}' saved at '{file_location}'", 
@@ -173,6 +242,27 @@ async def generate_with_api(generate: GenerateData):
 
     start_time = timer()
     images = generate_baby(generate)
+    end_time = timer()
+    
+    total_time = end_time - start_time
+    
+    json_compatible_item_data = jsonable_encoder({"images": images, "elapsed_time": timedelta(seconds=total_time)})
+    return JSONResponse(content = json_compatible_item_data)
+
+@app.post("/generate/emotions")
+async def generate_emotion_with_api(data: EmotionData):
+    """
+    Generate an emotion image using the given EmotionData.
+
+    Parameters:
+    - data (EmotionData): The data used to generate the image.
+
+    Returns:
+    - A dictionary containing the generated emotion image filename or an error message.
+    """
+
+    start_time = timer()
+    images = generate_emotions(data)
     end_time = timer()
     
     total_time = end_time - start_time
